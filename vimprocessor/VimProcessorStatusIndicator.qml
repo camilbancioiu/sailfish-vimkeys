@@ -25,12 +25,12 @@ Rectangle {
         opacity = 0;
       }
       if (status == "switching") {
-        color = switchingColor;
+        // color = switchingColor;
+        opacity = 0;
       }
       if (status == "normal") {
+        opacity = 1;
         color = normalColor;
       }
-      MInputMethodQuick.sendCommit("istatus: " + status + "\n");
-      MInputMethodQuick.sendCommit("icolor: " + color + "\n");
     }
 }

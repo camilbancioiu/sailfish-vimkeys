@@ -93,7 +93,7 @@ Item {
             keyboard.characterKeyCounter++
         }
 
-        if (vimProcessor.handleVimKeys(pressedKey)) {
+        if (vimProcessor.handleInput(pressedKey)) {
             return
         }
 
