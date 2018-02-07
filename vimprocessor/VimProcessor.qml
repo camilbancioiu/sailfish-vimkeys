@@ -96,7 +96,6 @@ Item {
         } else {
           enterVimNormalMode();
         }
-        switching = false;
         return true;
       } else {
         vimModeKeyTriggerTimer.start();
@@ -114,6 +113,7 @@ Item {
     keyboard.resetShift();
     vimMode = "normal";
     command = "";
+    switching = false;
     antiAutocapsTimer.start();
   }
 
@@ -122,6 +122,7 @@ Item {
     keyboard.resetShift();
     vimMode = "insert";
     command = "";
+    switching = false;
   }
 
   // See InputHandler._reset().
@@ -131,39 +132,52 @@ Item {
     reset()
   }
 
-
   function handleVimNormalModeKeys(pressedKey) {
-    var keys = [];
-    var mods = [];
+    var state = {
+      handled: false,
+      keys: [],
+      mods: [],
+      setVimMode: null,
+      returnValue: false
+    };
+
+    state = handleIgnoredKeys(pressedKey, state);
+    state = handleInsertionKeys(pressedKey, state);
+    state = handleSimpleNavigationKeys(pressedKey, state);
+    state = handleDeletionKeys(pressedKey, state);
+
+    sendKeys(state.keys, state.mods);
+
+    if (state.setVimMode != null) {
+      if (state.setVimMode == "insert") {
+        enterVimInsertMode();
+      }
+      if (state.setVimMode == "normal") {
+        enterVimNormalMode();
+      }
+    }
+
+    return state.returnValue;
+  }
+
+  function handleIgnoredKeys(pressedKey, state) {
+    if (state.handled) return state;
 
     // Allow default behaviour for the following keys.
-    var bypassKeys = [Qt.Key_Enter, Qt.Key_Backspace];
-    if (bypassKeys.indexOf(pressedKey.key) != -1) {
-      return false;
+    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace];
+    if (ignoredKeys.indexOf(pressedKey.key) != -1) {
+      return handled([], [], false);
     }
+    return unhandled();
+  }
 
-    // Handle command keys.
-    var comboStartKeys = ['d'];
-    var comboEndKeys = ['d'];
-    if (command == "") {
-      if (comboStartKeys.indexOf(pressedKey.text) != -1) {
-        command = pressedKey.text;
-        return true;
-      }
-    } else {
-      if (comboEndKeys.indexOf(pressedKey.text) != -1) {
-        command = command + pressedKey.text;
-      } else {
-        command = "";
-        return true;
-      }
-      switch (command) {
-        case 'dd': keys = [Qt.Key_Home, Qt.Key_End, Qt.Key_Delete];     mods = [null, Qt.ShiftModifier, null]; break;
-        default: command = ''; return true;
-      }
-    }
+  function handleSimpleNavigationKeys(pressedKey, state) {
+    if (state.handled) return state;
 
     if (command == '') {
+      var navHandled = true;
+      var keys = [];
+      var mods = [];
       // Basic mappings.
       switch (pressedKey.text) {
         case "h": keys = [Qt.Key_Left];     mods = [null]; break;
@@ -172,11 +186,75 @@ Item {
         case "l": keys = [Qt.Key_Right];    mods = [null]; break;
         case "b": keys = [Qt.Key_Left];     mods = [Qt.ControlModifier]; break;
         case "w": keys = [Qt.Key_Right];    mods = [Qt.ControlModifier]; break;
-        case "x": keys = [Qt.Key_Delete];   mods = [null]; break;
-        case "u": keys = [Qt.Key_Z];        mods = [Qt.ControlModifier]; break;
+        case "0": keys = [Qt.Key_Home];     mods = [null]; break;
+        case "$": keys = [Qt.Key_End];    mods = [null]; break;
+
+        default: navHandled = false; break;
+      }
+      if (navHandled) {
+        return handled(keys, mods, true);
+      } else {
+        return unhandled();
+      }
+    } else {
+      return unhandled();
+    }
+  }
+
+  function handleInsertionKeys(pressedKey, state) {
+    if (state.handled) return state;
+
+    if (command == '') {
+      if (pressedKey.text == 'i') {
+        state = handled([], [], true);
+        state.setVimMode = "insert";
+        return state;
+      }
+      if (pressedKey.text == 'a') {
+        state = handled([Qt.Key_Right], [null], true);
+        state.setVimMode = "insert";
+        return state;
       }
     }
 
+    return unhandled();
+  }
+
+  function handleDeletionKeys(pressedKey, state) {
+    if (state.handled) return state;
+
+    if (command == 'd') {
+      if (pressedKey.text == 'd') {
+        return handled(
+          [Qt.Key_Home, Qt.Key_End, Qt.Key_Delete],
+          [null, Qt.ShiftModifier, null], 
+          true);
+      }
+      command = '';
+      return unhandled();
+    }
+    if (command == '') {
+      if (pressedKey.text == 'd') {
+        command = 'd';
+        return handled([], [], true);
+      }
+      if (pressedKey.text == 'x') {
+        return handled([Qt.Key_Delete], [null], true);
+      }
+    }
+
+    return unhandled();
+  }
+
+  function unhandled() {
+    return {handled: false, keys: [], mods: [], returnValue: false };
+  }
+  
+  function handled(k, m, rv) {
+    return {handled: true, keys: k, mods: m, returnValue: rv};
+  }
+
+  function sendKeys(keys, mods) {
     // Send keys.
     for (var i = 0; i < keys.length; i++) {
       if (mods[i] != null) {
@@ -185,13 +263,5 @@ Item {
         MInputMethodQuick.sendKey(keys[i]);
       }
     }
-
-    // Special handling.
-    if (pressedKey.text == "s") {
-      MInputMethodQuick.sendCommit(MInputMethodQuick.surroundingText);
-    }
-
-    return true;
   }
-
 }
