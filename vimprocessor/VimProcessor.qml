@@ -146,6 +146,12 @@ Item {
       // (i.e. one modifier for each key).
       mods: [],
 
+      // Array of texts to be sent if the input has been handled. 
+      // Must match the "keys" array element-by-element
+      // (i.e. one modifier for each key).
+      // Only sent if the corresponding element in the "keys" array is "null".
+      texts: [],
+
       // Value set by command handlers, if they want to change the Vim mode.
       setVimMode: null,
 
@@ -155,10 +161,11 @@ Item {
     state = handleIgnoredKeys(pressedKey, state);
     state = handleInsertionKeys(pressedKey, state);
     state = handleSimpleNavigationKeys(pressedKey, state);
+    state = handleReplacementKeys(pressedKey, state);
     state = handleDeletionKeys(pressedKey, state);
     state = defaultBlocker(pressedKey, state);
 
-    sendKeys(state.keys, state.mods);
+    sendKeys(state.keys, state.mods, state.texts);
 
     if (state.setVimMode != null) {
       if (state.setVimMode == "insert") {
@@ -180,7 +187,7 @@ Item {
     if (state.handled) return state;
 
     if (state.handled == false) {
-      return handled([], [], true);
+      return handled([], [], [], true);
     }
   }
 
@@ -189,9 +196,9 @@ Item {
   function handleIgnoredKeys(pressedKey, state) {
     if (state.handled) return state;
 
-    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace];
+    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift];
     if (ignoredKeys.indexOf(pressedKey.key) != -1) {
-      return handled([], [], false);
+      return handled([], [], [], false);
     }
     return unhandled();
   }
@@ -217,8 +224,13 @@ Item {
 
         default: navHandled = false; break;
       }
+      var texts = [];
+      for (var i = 0; i < keys.length; i++) {
+        texts.push(null);
+      }
+
       if (navHandled) {
-        return handled(keys, mods, true);
+        return handled(keys, mods, texts, true);
       } else {
         return unhandled();
       }
@@ -233,12 +245,12 @@ Item {
 
     if (command == '') {
       if (pressedKey.text == 'i') {
-        state = handled([], [], true);
+        state = handled([], [], [], true);
         state.setVimMode = "insert";
         return state;
       }
       if (pressedKey.text == 'a') {
-        state = handled([Qt.Key_Right], [null], true);
+        state = handled([Qt.Key_Right], [null], [null], true);
         state.setVimMode = "insert";
         return state;
       }
@@ -257,6 +269,7 @@ Item {
         return handled(
           [Qt.Key_Home, Qt.Key_End, Qt.Key_Delete, Qt.Key_Backspace],
           [null, Qt.ShiftModifier, null, null], 
+          [null, null, null, null], 
           true);
       } else {
         command = '';
@@ -266,32 +279,56 @@ Item {
     if (command == '') {
       if (pressedKey.text == 'd') {
         command = 'd';
-        return handled([], [], true);
+        return handled([], [], [], true);
       }
       if (pressedKey.text == 'x') {
-        return handled([Qt.Key_Delete], [null], true);
+        return handled([Qt.Key_Delete], [null], [null], true);
       }
     }
 
     return unhandled();
   }
 
-  // Helper to create state objects returned by handlers.
-  function unhandled() {
-    return {handled: false, keys: [], mods: [], returnValue: false, setVimMode: false };
-  }
-  
-  function handled(k, m, rv) {
-    return {handled: true, keys: k, mods: m, returnValue: rv, setVimMode: false };
+  // ======== Command handler
+  function handleReplacementKeys(pressedKey, state) {
+    if (state.handled) return state;
+
+    if (command == 'r') {
+      command = '';
+      return handled(
+        [Qt.Key_Delete, null],
+        [null, null],
+        [null, pressedKey.text],
+        true);
+    }
+    if (command == '') {
+      if (pressedKey.text == 'r') {
+        command = 'r';
+        return handled([], [], [], true);
+      }
+    }
   }
 
-  function sendKeys(keys, mods) {
+  // Helper to create state objects returned by handlers.
+  function unhandled() {
+    return {handled: false, keys: [], mods: [], texts: [], returnValue: false, setVimMode: false };
+  }
+  
+  function handled(k, m, t, rv) {
+    return {handled: true, keys: k, mods: m, texts: t, returnValue: rv, setVimMode: false };
+  }
+
+  function sendKeys(keys, mods, texts) {
     // Send keys.
     for (var i = 0; i < keys.length; i++) {
-      if (mods[i] != null) {
-        MInputMethodQuick.sendKey(keys[i], mods[i]);
-      } else {
-        MInputMethodQuick.sendKey(keys[i]);
+      if (keys[i] != null) {
+        if (mods[i] != null) {
+          MInputMethodQuick.sendKey(keys[i], mods[i]);
+        } else {
+          MInputMethodQuick.sendKey(keys[i]);
+        }
+      } else if (texts[i] != null) {
+        MInputMethodQuick.sendCommit(texts[i]);
       }
     }
   }
