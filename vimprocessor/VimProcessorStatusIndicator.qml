@@ -25,7 +25,6 @@ Rectangle {
         opacity = 0;
       }
       if (status == "switching") {
-        // color = switchingColor;
         opacity = 0;
       }
       if (status == "normal") {

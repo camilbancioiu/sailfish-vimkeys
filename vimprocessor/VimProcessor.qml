@@ -134,17 +134,29 @@ Item {
 
   function handleVimNormalModeKeys(pressedKey) {
     var state = {
+      // Flag set by a command handler, if it has handled the input.
+      // All further handlers will be skipped.
       handled: false,
+
+      // Array of keys to be sent if the input has been handled.
       keys: [],
+
+      // Array of key modifiers to be sent if the input has been handled.
+      // Must match they "keys" array element-by-element 
+      // (i.e. one modifier for each key).
       mods: [],
+
+      // Value set by command handlers, if they want to change the Vim mode.
       setVimMode: null,
-      returnValue: false
+
+      returnValue: false   
     };
 
     state = handleIgnoredKeys(pressedKey, state);
     state = handleInsertionKeys(pressedKey, state);
     state = handleSimpleNavigationKeys(pressedKey, state);
     state = handleDeletionKeys(pressedKey, state);
+    state = defaultBlocker(pressedKey, state);
 
     sendKeys(state.keys, state.mods);
 
@@ -156,14 +168,27 @@ Item {
         enterVimNormalMode();
       }
     }
-
+    
     return state.returnValue;
   }
 
+  // ======== Command handler
+  // Block all unhandled keys, by default. 
+  // Thus in "normal" mode, no keys will be sent to the app,
+  // unless a command handler explicitly decides to.
+  function defaultBlocker(pressedKey, state) {
+    if (state.handled) return state;
+
+    if (state.handled == false) {
+      return handled([], [], true);
+    }
+  }
+
+  // ======== Command handler
+  // Allow default behaviour for certain keys.
   function handleIgnoredKeys(pressedKey, state) {
     if (state.handled) return state;
 
-    // Allow default behaviour for the following keys.
     var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace];
     if (ignoredKeys.indexOf(pressedKey.key) != -1) {
       return handled([], [], false);
@@ -171,6 +196,7 @@ Item {
     return unhandled();
   }
 
+  // ======== Command handler
   function handleSimpleNavigationKeys(pressedKey, state) {
     if (state.handled) return state;
 
@@ -201,6 +227,7 @@ Item {
     }
   }
 
+  // ======== Command handler
   function handleInsertionKeys(pressedKey, state) {
     if (state.handled) return state;
 
@@ -220,18 +247,21 @@ Item {
     return unhandled();
   }
 
+  // ======== Command handler
   function handleDeletionKeys(pressedKey, state) {
     if (state.handled) return state;
 
     if (command == 'd') {
       if (pressedKey.text == 'd') {
+        command = '';
         return handled(
-          [Qt.Key_Home, Qt.Key_End, Qt.Key_Delete],
-          [null, Qt.ShiftModifier, null], 
+          [Qt.Key_Home, Qt.Key_End, Qt.Key_Delete, Qt.Key_Backspace],
+          [null, Qt.ShiftModifier, null, null], 
           true);
+      } else {
+        command = '';
+        return unhandled();
       }
-      command = '';
-      return unhandled();
     }
     if (command == '') {
       if (pressedKey.text == 'd') {
@@ -246,12 +276,13 @@ Item {
     return unhandled();
   }
 
+  // Helper to create state objects returned by handlers.
   function unhandled() {
-    return {handled: false, keys: [], mods: [], returnValue: false };
+    return {handled: false, keys: [], mods: [], returnValue: false, setVimMode: false };
   }
   
   function handled(k, m, rv) {
-    return {handled: true, keys: k, mods: m, returnValue: rv};
+    return {handled: true, keys: k, mods: m, returnValue: rv, setVimMode: false };
   }
 
   function sendKeys(keys, mods) {
