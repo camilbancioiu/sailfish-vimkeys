@@ -14,7 +14,6 @@ Item {
   Component.onCompleted: {
     var statusIndicatorComponent = Qt.createComponent("VimProcessorStatusIndicator.qml");
     indicator = statusIndicatorComponent.createObject(keyboard);
-    indicator.id = "vimProcessorStatusIndicator";
   }
 
   onVimModeChanged: {
@@ -118,6 +117,7 @@ Item {
     command = "";
     switching = false;
     antiAutocapsTimer.start();
+    console.warn("VimProcessor for Maliit: entered normal mode.");
   }
 
   function enterVimInsertMode() {
@@ -126,6 +126,7 @@ Item {
     vimMode = "insert";
     command = "";
     switching = false;
+    console.warn("VimProcessor for Maliit: entered insert mode.");
   }
 
   // See InputHandler._reset().
@@ -166,7 +167,6 @@ Item {
     state = handleSimpleNavigationKeys(pressedKey, state);
     state = handleReplacementKeys(pressedKey, state);
     state = handleDeletionKeys(pressedKey, state);
-    state = defaultBlocker(pressedKey, state);
 
     sendKeys(state.keys, state.mods, state.texts);
 
@@ -179,6 +179,13 @@ Item {
       }
     }
     
+    if (state.returnValue) {
+      console.warn("VimProcessor: keypress handled.");
+    } else {
+      console.warn("VimProcessor: keypress not handled.");
+    }
+
+    state = defaultBlocker(pressedKey, state);
     return state.returnValue;
   }
 
@@ -199,7 +206,7 @@ Item {
   function handleIgnoredKeys(pressedKey, state) {
     if (state.handled) return state;
 
-    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift];
+    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift, Qt.Key_Paste];
     if (ignoredKeys.indexOf(pressedKey.key) != -1) {
       return handled([], [], [], false);
     }
@@ -310,6 +317,7 @@ Item {
         return handled([], [], [], true);
       }
     }
+    return unhandled();
   }
 
   // Helper to create state objects returned by handlers.
