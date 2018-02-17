@@ -220,7 +220,8 @@ Item {
   function handleIgnoredKeys(pressedKey, state) {
     if (state.handled) return state;
 
-    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift, Qt.Key_Paste];
+    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift, Qt.Key_Paste,
+                       Qt.Key_Return];
     if (ignoredKeys.indexOf(pressedKey.key) != -1) {
       return handled([], [], [], _KEYPRESS_IGNORED);
     }
