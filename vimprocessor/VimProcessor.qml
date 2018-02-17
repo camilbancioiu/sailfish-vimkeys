@@ -118,7 +118,7 @@ Item {
     command = "";
     switching = false;
     antiAutocapsTimer.start();
-    console.warn("VimProcessor for Maliit: entered normal mode.");
+    Util.debug("Entered normal mode.");
   }
 
   function enterVimInsertMode() {
@@ -127,7 +127,7 @@ Item {
     vimMode = "insert";
     command = "";
     switching = false;
-    console.warn("VimProcessor for Maliit: entered insert mode.");
+    Util.debug("Entered insert mode.");
   }
 
   // See InputHandler._reset().
@@ -182,9 +182,9 @@ Item {
     }
     
     if (state.returnValue) {
-      console.warn("VimProcessor: keypress handled.");
+      Util.debugPressedKey("Handled.", pressedKey);
     } else {
-      console.warn("VimProcessor: keypress not handled.");
+      Util.debugPressedKey("Not handled.", pressedKey);
     }
 
     state = defaultBlocker(pressedKey, state);
