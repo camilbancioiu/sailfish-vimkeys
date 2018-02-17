@@ -9,6 +9,7 @@ Item {
   property bool switching : false;
   property var indicator : ({});
   property string command : "";
+  property bool enabled: true;
 
   Component.onCompleted: {
     var statusIndicatorComponent = Qt.createComponent("VimProcessorStatusIndicator.qml");
@@ -60,6 +61,8 @@ Item {
   }
 
   function handleInput(pressedKey) {
+    if (!enabled) return false;
+
     var vimModeSwitched = handleVimModeSwitching(pressedKey);
     if (switching) {
       if (vimMode == "normal") {
