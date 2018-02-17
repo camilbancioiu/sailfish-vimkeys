@@ -1,16 +1,14 @@
 import QtQuick 2.0
 import com.meego.maliitquick 1.0
 import com.jolla.keyboard 1.0
-import Sailfish.Silica 1.0 as Silica
+import Sailfish.Silica 1.0
 
 Rectangle {
     id: indicatorStripe;
 
     property string status : "none";
-    property color switchingColor : "pink";
-    property color normalColor : "blue";
 
-    color: "pink";
+    color: Theme.highlightBackgroundColor;
 
     anchors.left: parent.left;
     anchors.right: parent.right;
@@ -29,7 +27,6 @@ Rectangle {
       }
       if (status == "normal") {
         opacity = 1;
-        color = normalColor;
       }
     }
 }
