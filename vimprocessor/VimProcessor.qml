@@ -63,7 +63,7 @@ Item {
   function handleInput(pressedKey) {
     if (!enabled) return false;
 
-    var vimModeSwitched = handleVimModeSwitching(pressedKey);
+    var vimModeSwitched = handleVimModeSwitching_ShiftSpace(pressedKey);
     if (switching) {
       if (vimMode == "normal") {
         return true;
@@ -71,17 +71,13 @@ Item {
       return false;
     }
 
-    if (vimModeSwitched && vimMode == "insert") {
+    if (vimModeSwitched) {
       return true;
-    }
+    } 
 
     if (vimMode == "insert") {
       return false;
     } 
-
-    if (vimModeSwitched) {
-      return true;
-    }
     
     if (vimMode == "normal") {
       if (pressedKey.key != Qt.Key_Shift) {
@@ -91,8 +87,9 @@ Item {
     }
   }
 
-  function handleVimModeSwitching(pressedKey) {
+  function handleVimModeSwitching_DoubleTapSpace(pressedKey) {
     if (pressedKey.key == Qt.Key_Space) {
+      Util.debug("keyboard.shiftKeyPressed: " + keyboard.shiftKeyPressed);
       if (switching) {
         if (vimMode == "normal") {
           enterVimInsertMode();
@@ -104,6 +101,25 @@ Item {
         vimModeKeyTriggerTimer.start();
         switching = true;
         return false;
+      }
+    }
+    return false;
+  }
+
+  function handleVimModeSwitching_ShiftSpace(pressedKey) {
+    if (pressedKey.key == Qt.Key_Space || keyboard.shiftKeyPressed) {
+      Util.debug("keyboard.shiftKeyPressed: " + keyboard.shiftKeyPressed);
+      if (!switching) {
+        switching = true;
+        return true;
+      } 
+      if (switching) {
+        if (vimMode == "normal") {
+          enterVimInsertMode();
+        } else {
+          enterVimNormalMode();
+        }
+        return true;
       }
     }
     return false;
