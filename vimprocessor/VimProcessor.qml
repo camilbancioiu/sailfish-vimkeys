@@ -68,10 +68,7 @@ Item {
 
     var vimModeSwitched = handleVimModeSwitching_ShiftSpace(pressedKey);
     if (switching) {
-      if (vimMode == "normal") {
-        return _KEYPRESS_HANDLED;
-      }
-      return _KEYPRESS_IGNORED;
+      return _KEYPRESS_HANDLED;
     }
 
     if (vimModeSwitched) {
@@ -110,26 +107,22 @@ Item {
   }
 
   function handleVimModeSwitching_ShiftSpace(pressedKey) {
-    if (pressedKey.key == Qt.Key_Space || keyboard.shiftKeyPressed) {
+    var _MODE_SWITCHED = true;
+    var _MODE_NOT_SWITCHED = false;
+    switching = false;
+    if (pressedKey.key == Qt.Key_Space && keyboard.shiftKeyPressed) {
       Util.debug("keyboard.shiftKeyPressed: " + keyboard.shiftKeyPressed);
-      if (!switching) {
-        switching = true;
-        return _KEYPRESS_HANDLED;
-      } 
-      if (switching) {
-        if (vimMode == "normal") {
-          enterVimInsertMode();
-        } else {
-          enterVimNormalMode();
-        }
-        return _KEYPRESS_HANDLED;
+      if (vimMode == "normal") {
+        enterVimInsertMode();
+      } else {
+        enterVimNormalMode();
       }
+      return _MODE_SWITCHED;
     }
-    return _KEYPRESS_IGNORED;
+    return _MODE_NOT_SWITCHED;
   }
 
   function enterVimNormalMode() {
-    MInputMethodQuick.sendKey(Qt.Key_Backspace, 0, "\b", Maliit.KeyClick)
     resetParentInputHandler(); 
     keyboard.autocaps = false;
     keyboard.resetShift();
