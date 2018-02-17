@@ -150,224 +150,308 @@ Item {
   }
 
   function handleVimNormalModeKeys(pressedKey) {
-    var state = {
-      // Flag set by a command handler, if it has handled the input.
-      // All further handlers will be skipped.
-      handled: false,
+    var key = pressedKey.key;
+    var text = pressedKey.text;
 
-      // Array of keys to be sent if the input has been handled.
-      keys: [],
+    command = command + text;
+    Util.debug("Current command: " + command);
+    var handlers = [
+      handleIgnoredKeys,
+      handleReplacementKeys,
+      handleDeletionKeys,
+      handleInsertionKeys,
+      handleDevelKeys,
+      handleSimpleNavigationKeys
+    ];
 
-      // Array of key modifiers to be sent if the input has been handled.
-      // Must match they "keys" array element-by-element 
-      // (i.e. one modifier for each key).
-      mods: [],
+    var handler;
+    var handlerResult;
+    for (var i = 0; i < handlers.length; i++) {
+      handler = handlers[i];
+      handlerResult = handler(command, key, text);
+      if (handlerResult.commandRecognized == true) {
+        Util.debugCommandHandler(handler, handlerResult, command);
+        break;
+      }
+    }
 
-      // Array of texts to be sent if the input has been handled. 
-      // Must match the "keys" array element-by-element
-      // (i.e. one modifier for each key).
-      // Only sent if the corresponding element in the "keys" array is "null".
-      texts: [],
+    if (handlerResult.commandReconginzed == false || handlerResult.commandValid == false) {
+      command = '';
+    }
 
-      // Value set by command handlers, if they want to change the Vim mode.
-      setVimMode: null,
+    if (handlerResult.commandRecognized) {
+      if (handlerResult.commandValid) {
+        if (handlerResult.commandComplete) {
+          executeCommand(handlerResult, command);
+          command = '';
+        } else {
+          Util.debug("Current command is incomplete: " + command);
+        }
+      } else {
+        command = '';
+      }
+    } else {
+      command = '';
+    }
 
-      returnValue: _KEYPRESS_IGNORED   
-    };
+    if (handlerResult.commandOp == "passthrough") {
+      command = '';
+      return _KEYPRESS_IGNORED;
+    } else {
+      // Don't leak keypresses no matter what, because we're in normal mode.
+      return _KEYPRESS_HANDLED;
+    }
+  }
 
-    state = handleIgnoredKeys(pressedKey, state);
-    state = handleInsertionKeys(pressedKey, state);
-    state = handleSimpleNavigationKeys(pressedKey, state);
-    state = handleReplacementKeys(pressedKey, state);
-    state = handleDeletionKeys(pressedKey, state);
-    state = handleDevelKeys(pressedKey, state);
-
-    sendKeys(state.keys, state.mods, state.texts);
-
-    if (state.setVimMode != null) {
-      if (state.setVimMode == "insert") {
+  function executeCommand(handlerResult, command) {
+    if (typeof handlerResult.keySets !== "undefined") {
+      sendKeySets(handlerResult.keySets);
+    }
+    if (handlerResult.changeMode) {
+      if (handlerResult.changeMode == "insert") {
         enterVimInsertMode();
       }
-      if (state.setVimMode == "normal") {
+      if (handlerResult.changeMode == "normal") {
         enterVimNormalMode();
       }
     }
-    
-    if (state.returnValue) {
-      Util.debugPressedKey("Handled.", pressedKey);
-    } else {
-      Util.debugPressedKey("Not handled.", pressedKey);
-    }
-
-    state = defaultBlocker(pressedKey, state);
-    return state.returnValue;
   }
 
-  // ======== Command handler
-  // Block all unhandled keys, by default. 
-  // Thus in "normal" mode, no keys will be sent to the app,
-  // unless a command handler explicitly decides to.
-  function defaultBlocker(pressedKey, state) {
-    if (state.handled) return state;
+  function handlerResultUnrecognized() {
+    return {
+      commandRecognized: false,
+      commandComplete: false,
+      commandValid: false,
+      commandPassthrough: false
+    };
+  }
 
-    if (state.handled == false) {
-      return handled([], [], [], _KEYPRESS_HANDLED);
+  function handlerResultPassthrough() {
+    return {
+      commandRecognized: true,
+      commandComplete: true,
+      commandValid: true,
+      commandPassthrough: true
+    };
+  }
+
+  function handlerResultChangeMode(mode) {
+    return {
+      commandRecognized: true,
+      commandComplete: true,
+      commandValid: true,
+      commandPassthrough: true,
+      changeMode: mode
+    };
+  } 
+
+  function handlerResultCommandInvalid() {
+    return {
+      commandRecognized: true,
+      commandComplete: false,
+      commandValid: false,
+      commandPassthrough: false
+    };
+  }
+
+  function handlerResultSendKeySets(keySets) {
+    return {
+      commandRecognized: true,
+      commandComplete: true,
+      commandValid: true,
+      commandPassthrough: false,
+      keySets: keySets
+    };
+  }
+
+  function handlerResultCommandComplete() {
+    return {
+      commandRecognized: true,
+      commandComplete: true,
+      commandValid: true,
+      commandPassthrough: false
+    };
+  }
+
+  function handlerResultCommandIncomplete() {
+    return {
+      commandRecognized: true,
+      commandComplete: false,
+      commandValid: true,
+      commandPassthrough: false,
+    };
+  }
+
+  function sendKeySets(keySets) {
+    // Send keys.
+    for (var i = 0; i < keySets.length; i++) {
+      var keySet = keySets[i];
+      var key = keySet[0];
+      var mod = keySet[1];
+      var text = keySet[2];
+      if (key != null) {
+        if (mod != null) {
+          MInputMethodQuick.sendKey(key, mod);
+        } else {
+          MInputMethodQuick.sendKey(key);
+        }
+      } else if (text != null) {
+        MInputMethodQuick.sendCommit(text);
+      }
     }
+  }
+
+  function makeKeySet() {
+    if (arguments.length == 0) {
+      return [null, null, null];
+    }
+    if (arguments.length == 1) {
+      return [arguments[0], null, null];
+    }
+    if (arguments.length == 2) {
+      return [arguments[0], arguments[1], null];
+    }
+    if (arguments.length == 3) {
+      return [arguments[0], arguments[1], arguments[2]];
+    }
+  }
+
+  function normalKeySet(key, mod) {
+    if (typeof mod === "undefined") {
+      mod = null;
+    }
+    return makeKeySet(key, mod);
+  }
+
+  function textKeySet(text) {
+    return makeKeySet(null, null, text);
   }
 
   // ======== Command handler
   // Allow default behaviour for certain keys.
-  function handleIgnoredKeys(pressedKey, state) {
-    if (state.handled) return state;
-
+  function handleIgnoredKeys(command, key, text) {
     var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift, Qt.Key_Paste,
                        Qt.Key_Return];
-    if (ignoredKeys.indexOf(pressedKey.key) != -1) {
-      return handled([], [], [], _KEYPRESS_IGNORED);
+    if (ignoredKeys.indexOf(key) != -1) {
+      return handlerResultPassthrough();
     }
-    return unhandled();
+    return handlerResultUnrecognized();
   }
 
   // ======== Command handler
-  function handleSimpleNavigationKeys(pressedKey, state) {
-    if (state.handled) return state;
+  function handleSimpleNavigationKeys(command, key, text) {
+    if (command.length > 1) {
+      return handlerResultUnrecognized();
+    }
+    var navHandled = true;
+    var keySets = [];
+    // Basic mappings.
+    switch (command) {
+      case "h": keySets = [normalKeySet(Qt.Key_Left)];   break;
+      case "j": keySets = [normalKeySet(Qt.Key_Down)];   break;
+      case "k": keySets = [normalKeySet(Qt.Key_Up)];   break;
+      case "l": keySets = [normalKeySet(Qt.Key_Right)];   break;
 
-    if (command == '') {
-      var navHandled = true;
-      var keys = [];
-      var mods = [];
-      // Basic mappings.
-      switch (pressedKey.text) {
-        case "h": keys = [Qt.Key_Left];     mods = [null]; break;
-        case "j": keys = [Qt.Key_Down];     mods = [null]; break;
-        case "k": keys = [Qt.Key_Up];       mods = [null]; break;
-        case "l": keys = [Qt.Key_Right];    mods = [null]; break;
-        case "b": keys = [Qt.Key_Left];     mods = [Qt.ControlModifier]; break;
-        case "w": keys = [Qt.Key_Right];    mods = [Qt.ControlModifier]; break;
-        case "0": keys = [Qt.Key_Home];     mods = [null]; break;
-        case "$": keys = [Qt.Key_End];    mods = [null]; break;
+      case "b": keySets = [normalKeySet(Qt.Key_Left, Qt.ControlModifier)];   break;
+      case "w": keySets = [normalKeySet(Qt.Key_Right, Qt.ControlModifier)];   break;
 
-        default: navHandled = false; break;
-      }
-      var texts = [];
-      for (var i = 0; i < keys.length; i++) {
-        texts.push(null);
-      }
+      case "0": keySets = [normalKeySet(Qt.Key_Home)];   break;
+      case "$": keySets = [normalKeySet(Qt.Key_End)];   break;
 
-      if (navHandled) {
-        return handled(keys, mods, texts, _KEYPRESS_HANDLED);
-      } else {
-        return unhandled();
-      }
+      default: navHandled = false; break;
+    }
+
+    if (navHandled) {
+      var handlerResult = handlerResultCommandComplete();
+      handlerResult.keySets = keySets;
+      return handlerResult;
     } else {
-      return unhandled();
+      return handlerResultUnrecognized();
     }
   }
 
   // ======== Command handler
-  function handleInsertionKeys(pressedKey, state) {
-    if (state.handled) return state;
-
-    if (command == '') {
-      if (pressedKey.text == 'i') {
-        state = handled([], [], [], _KEYPRESS_HANDLED);
-        state.setVimMode = "insert";
-        return state;
+  function handleInsertionKeys(command, key, text) {
+    if (command == 'i') {
+      return handlerResultChangeMode("insert");
+    }
+    if (command == 'a') {
+      return handlerResultChangeMode("insert");
+    }
+    if (command == 'o' || command == 'O') {
+      var handlerResult = handlerResultCommandComplete();
+      handlerResult.changeMode = "insert";
+      if (command == 'o') {
+        handlerResult.keySets = [
+          normalKeySet(Qt.Key_End),
+          normalKeySet(Qt.Key_Return),
+          normalKeySet(Qt.Key_Return),
+          normalKeySet(Qt.Key_Up),
+        ];
       }
-      if (pressedKey.text == 'a') {
-        state = handled([Qt.Key_Right], [null], [null], _KEYPRESS_HANDLED);
-        state.setVimMode = "insert";
-        return state;
+      if (command == 'O') {
+        handlerResult.keySets = [
+          normalKeySet(Qt.Key_Home),
+          normalKeySet(Qt.Key_Return),
+          normalKeySet(Qt.Key_Up),
+        ];
       }
+      return handlerResult;
     }
 
-    return unhandled();
+    return handlerResultUnrecognized();
   }
 
   // ======== Command handler
-  function handleDeletionKeys(pressedKey, state) {
-    if (state.handled) return state;
-
+  function handleDeletionKeys(command, key, text) {
+    if (command == 'dd') {
+      var keySets = [
+        normalKeySet(Qt.Key_Home),
+        normalKeySet(Qt.Key_End, Qt.ShiftModifier),
+        normalKeySet(Qt.Key_Delete),
+        normalKeySet(Qt.Key_Backspace)
+      ];
+      return handlerResultSendKeySets(keySets);
+    }
     if (command == 'd') {
-      if (pressedKey.text == 'd') {
-        command = '';
-        return handled(
-          [Qt.Key_Home, Qt.Key_End, Qt.Key_Delete, Qt.Key_Backspace],
-          [null, Qt.ShiftModifier, null, null], 
-          [null, null, null, null], 
-          _KEYPRESS_HANDLED);
-      } else {
-        command = '';
-        return unhandled();
-      }
+      return handlerResultCommandIncomplete();
     }
-    if (command == '') {
-      if (pressedKey.text == 'd') {
-        command = 'd';
-        return handled([], [], [], _KEYPRESS_HANDLED);
-      }
-      if (pressedKey.text == 'x') {
-        return handled([Qt.Key_Delete], [null], [null], _KEYPRESS_HANDLED);
-      }
+    if (command == 'x') {
+      return handlerResultSendKeySets([normalKeySet(Qt.Key_Delete)]);
+    }
+    // If command starts with 'd' but hasn't been handled up to this point,
+    // it must be invalid.
+    if (command.length > 1 && command[0] == 'd') {
+      return handlerResultCommandInvalid();
     }
 
-    return unhandled();
+    return handlerResultUnrecognized();
   }
 
   // ======== Command handler
-  function handleReplacementKeys(pressedKey, state) {
-    if (state.handled) return state;
-
+  function handleReplacementKeys(command, key, text) {
     if (command == 'r') {
-      command = '';
-      return handled(
-        [Qt.Key_Delete, null],
-        [null, null],
-        [null, pressedKey.text],
-        _KEYPRESS_HANDLED);
+      return handlerResultCommandIncomplete();
     }
-    if (command == '') {
-      if (pressedKey.text == 'r') {
-        command = 'r';
-        return handled([], [], [], _KEYPRESS_HANDLED);
-      }
+
+    if (command[0] == 'r') {
+      var keySets = [
+        normalKeySet(Qt.Key_Delete),
+        textKeySet(command[1])
+      ];
+      return handlerResultSendKeySets(keySets);
     }
-    return unhandled();
+    return handlerResultUnrecognized();
   }
 
 
   // ======== Command handler
-  function handleDevelKeys(pressedKey, state) {
-    if (state.handled) return state;
-
-    if (pressedKey.text == '?') {
+  function handleDevelKeys(command, key, text) {
+    if (command == '?') {
       Util.testUtilities();
+      return handlerResultCommandComplete();
     }
 
-    return unhandled();
-  }
-
-  // Helper to create state objects returned by handlers.
-  function unhandled() {
-    return {handled: false, keys: [], mods: [], texts: [], returnValue: _KEYPRESS_IGNORED, setVimMode: false };
-  }
-  
-  function handled(k, m, t, rv) {
-    return {handled: true, keys: k, mods: m, texts: t, returnValue: rv, setVimMode: false };
-  }
-
-  function sendKeys(keys, mods, texts) {
-    // Send keys.
-    for (var i = 0; i < keys.length; i++) {
-      if (keys[i] != null) {
-        if (mods[i] != null) {
-          MInputMethodQuick.sendKey(keys[i], mods[i]);
-        } else {
-          MInputMethodQuick.sendKey(keys[i]);
-        }
-      } else if (texts[i] != null) {
-        MInputMethodQuick.sendCommit(texts[i]);
-      }
-    }
+    return handlerResultUnrecognized();
   }
 }
