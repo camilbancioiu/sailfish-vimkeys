@@ -3,6 +3,7 @@ import com.meego.maliitquick 1.0
 import com.jolla.keyboard 1.0
 import Sailfish.Silica 1.0 as Silica
 import "."
+import "utilities.js" as Util
 
 Item {
   property string vimMode : "insert";
@@ -167,6 +168,7 @@ Item {
     state = handleSimpleNavigationKeys(pressedKey, state);
     state = handleReplacementKeys(pressedKey, state);
     state = handleDeletionKeys(pressedKey, state);
+    state = handleDevelKeys(pressedKey, state);
 
     sendKeys(state.keys, state.mods, state.texts);
 
@@ -317,6 +319,18 @@ Item {
         return handled([], [], [], true);
       }
     }
+    return unhandled();
+  }
+
+
+  // ======== Command handler
+  function handleDevelKeys(pressedKey, state) {
+    if (state.handled) return state;
+
+    if (pressedKey.text == '?') {
+      Util.testUtilities();
+    }
+
     return unhandled();
   }
 
