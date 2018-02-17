@@ -12,6 +12,9 @@ Item {
   property string command : "";
   property bool enabled: true;
 
+  property bool _KEYPRESS_HANDLED: true;
+  property bool _KEYPRESS_IGNORED: false;
+
   Component.onCompleted: {
     var statusIndicatorComponent = Qt.createComponent("VimProcessorStatusIndicator.qml");
     indicator = statusIndicatorComponent.createObject(keyboard);
@@ -48,7 +51,7 @@ Item {
     interval: 5
 
     onTriggered: {
-      if (keyboard.vimNormalMode == true) {
+      if (vimMode == "normal") {
         keyboard.shiftState = ShiftState.NoShift; 
       }
     }
@@ -61,22 +64,22 @@ Item {
   }
 
   function handleInput(pressedKey) {
-    if (!enabled) return false;
+    if (!enabled) return _KEYPRESS_IGNORED;
 
     var vimModeSwitched = handleVimModeSwitching_ShiftSpace(pressedKey);
     if (switching) {
       if (vimMode == "normal") {
-        return true;
+        return _KEYPRESS_HANDLED;
       }
-      return false;
+      return _KEYPRESS_IGNORED;
     }
 
     if (vimModeSwitched) {
-      return true;
+      return _KEYPRESS_HANDLED;
     } 
 
     if (vimMode == "insert") {
-      return false;
+      return _KEYPRESS_IGNORED;
     } 
     
     if (vimMode == "normal") {
@@ -96,14 +99,14 @@ Item {
         } else {
           enterVimNormalMode();
         }
-        return true;
+        return _KEYPRESS_HANDLED;
       } else {
         vimModeKeyTriggerTimer.start();
         switching = true;
-        return false;
+        return _KEYPRESS_IGNORED;
       }
     }
-    return false;
+    return _KEYPRESS_IGNORED;
   }
 
   function handleVimModeSwitching_ShiftSpace(pressedKey) {
@@ -111,7 +114,7 @@ Item {
       Util.debug("keyboard.shiftKeyPressed: " + keyboard.shiftKeyPressed);
       if (!switching) {
         switching = true;
-        return true;
+        return _KEYPRESS_HANDLED;
       } 
       if (switching) {
         if (vimMode == "normal") {
@@ -119,10 +122,10 @@ Item {
         } else {
           enterVimNormalMode();
         }
-        return true;
+        return _KEYPRESS_HANDLED;
       }
     }
-    return false;
+    return _KEYPRESS_IGNORED;
   }
 
   function enterVimNormalMode() {
@@ -176,7 +179,7 @@ Item {
       // Value set by command handlers, if they want to change the Vim mode.
       setVimMode: null,
 
-      returnValue: false   
+      returnValue: _KEYPRESS_IGNORED   
     };
 
     state = handleIgnoredKeys(pressedKey, state);
@@ -215,7 +218,7 @@ Item {
     if (state.handled) return state;
 
     if (state.handled == false) {
-      return handled([], [], [], true);
+      return handled([], [], [], _KEYPRESS_HANDLED);
     }
   }
 
@@ -226,7 +229,7 @@ Item {
 
     var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift, Qt.Key_Paste];
     if (ignoredKeys.indexOf(pressedKey.key) != -1) {
-      return handled([], [], [], false);
+      return handled([], [], [], _KEYPRESS_IGNORED);
     }
     return unhandled();
   }
@@ -258,7 +261,7 @@ Item {
       }
 
       if (navHandled) {
-        return handled(keys, mods, texts, true);
+        return handled(keys, mods, texts, _KEYPRESS_HANDLED);
       } else {
         return unhandled();
       }
@@ -273,12 +276,12 @@ Item {
 
     if (command == '') {
       if (pressedKey.text == 'i') {
-        state = handled([], [], [], true);
+        state = handled([], [], [], _KEYPRESS_HANDLED);
         state.setVimMode = "insert";
         return state;
       }
       if (pressedKey.text == 'a') {
-        state = handled([Qt.Key_Right], [null], [null], true);
+        state = handled([Qt.Key_Right], [null], [null], _KEYPRESS_HANDLED);
         state.setVimMode = "insert";
         return state;
       }
@@ -298,7 +301,7 @@ Item {
           [Qt.Key_Home, Qt.Key_End, Qt.Key_Delete, Qt.Key_Backspace],
           [null, Qt.ShiftModifier, null, null], 
           [null, null, null, null], 
-          true);
+          _KEYPRESS_HANDLED);
       } else {
         command = '';
         return unhandled();
@@ -307,10 +310,10 @@ Item {
     if (command == '') {
       if (pressedKey.text == 'd') {
         command = 'd';
-        return handled([], [], [], true);
+        return handled([], [], [], _KEYPRESS_HANDLED);
       }
       if (pressedKey.text == 'x') {
-        return handled([Qt.Key_Delete], [null], [null], true);
+        return handled([Qt.Key_Delete], [null], [null], _KEYPRESS_HANDLED);
       }
     }
 
@@ -327,12 +330,12 @@ Item {
         [Qt.Key_Delete, null],
         [null, null],
         [null, pressedKey.text],
-        true);
+        _KEYPRESS_HANDLED);
     }
     if (command == '') {
       if (pressedKey.text == 'r') {
         command = 'r';
-        return handled([], [], [], true);
+        return handled([], [], [], _KEYPRESS_HANDLED);
       }
     }
     return unhandled();
@@ -352,7 +355,7 @@ Item {
 
   // Helper to create state objects returned by handlers.
   function unhandled() {
-    return {handled: false, keys: [], mods: [], texts: [], returnValue: false, setVimMode: false };
+    return {handled: false, keys: [], mods: [], texts: [], returnValue: _KEYPRESS_IGNORED, setVimMode: false };
   }
   
   function handled(k, m, t, rv) {
