@@ -3,7 +3,8 @@ import com.meego.maliitquick 1.0
 import com.jolla.keyboard 1.0
 import Sailfish.Silica 1.0 as Silica
 import "."
-import "utilities.js" as Util
+import "Utilities.js" as Util
+import "Handlers.js" as Handlers
 
 Item {
   property string vimMode : "insert";
@@ -156,12 +157,12 @@ Item {
     command = command + text;
     Util.debug("Current command: " + command);
     var handlers = [
-      handleIgnoredKeys,
-      handleReplacementKeys,
-      handleDeletionKeys,
-      handleInsertionKeys,
-      handleDevelKeys,
-      handleSimpleNavigationKeys
+      Handlers.handleIgnoredKeys,
+      Handlers.handleReplacementKeys,
+      Handlers.handleDeletionKeys,
+      Handlers.handleInsertionKeys,
+      Handlers.handleDevelKeys,
+      Handlers.handleSimpleNavigationKeys
     ];
 
     var handler;
@@ -217,71 +218,6 @@ Item {
     }
   }
 
-  function handlerResultUnrecognized() {
-    return {
-      commandRecognized: false,
-      commandComplete: false,
-      commandValid: false,
-      commandPassthrough: false
-    };
-  }
-
-  function handlerResultPassthrough() {
-    return {
-      commandRecognized: true,
-      commandComplete: true,
-      commandValid: true,
-      commandPassthrough: true
-    };
-  }
-
-  function handlerResultChangeMode(mode) {
-    return {
-      commandRecognized: true,
-      commandComplete: true,
-      commandValid: true,
-      commandPassthrough: true,
-      changeMode: mode
-    };
-  } 
-
-  function handlerResultCommandInvalid() {
-    return {
-      commandRecognized: true,
-      commandComplete: false,
-      commandValid: false,
-      commandPassthrough: false
-    };
-  }
-
-  function handlerResultSendKeySets(keySets) {
-    return {
-      commandRecognized: true,
-      commandComplete: true,
-      commandValid: true,
-      commandPassthrough: false,
-      keySets: keySets
-    };
-  }
-
-  function handlerResultCommandComplete() {
-    return {
-      commandRecognized: true,
-      commandComplete: true,
-      commandValid: true,
-      commandPassthrough: false
-    };
-  }
-
-  function handlerResultCommandIncomplete() {
-    return {
-      commandRecognized: true,
-      commandComplete: false,
-      commandValid: true,
-      commandPassthrough: false,
-    };
-  }
-
   function sendKeySets(keySets) {
     // Send keys.
     for (var i = 0; i < keySets.length; i++) {
@@ -301,165 +237,4 @@ Item {
     }
   }
 
-  function makeKeySet() {
-    if (arguments.length == 0) {
-      return [null, null, null];
-    }
-    if (arguments.length == 1) {
-      return [arguments[0], null, null];
-    }
-    if (arguments.length == 2) {
-      return [arguments[0], arguments[1], null];
-    }
-    if (arguments.length == 3) {
-      return [arguments[0], arguments[1], arguments[2]];
-    }
-  }
-
-  function normalKeySet(key, mod) {
-    if (typeof mod === "undefined") {
-      mod = null;
-    }
-    return makeKeySet(key, mod);
-  }
-
-  function textKeySet(text) {
-    return makeKeySet(null, null, text);
-  }
-
-  // ======== Command handler
-  // Allow default behaviour for certain keys.
-  function handleIgnoredKeys(command, key, text) {
-    var ignoredKeys = [Qt.Key_Enter, Qt.Key_Backspace, Qt.Key_Shift, Qt.Key_Paste,
-                       Qt.Key_Return];
-    if (ignoredKeys.indexOf(key) != -1) {
-      return handlerResultPassthrough();
-    }
-    return handlerResultUnrecognized();
-  }
-
-  // ======== Command handler
-  function handleSimpleNavigationKeys(command, key, text) {
-    if (command.length > 1) {
-      return handlerResultUnrecognized();
-    }
-    var navHandled = true;
-    var keySets = [];
-    // Basic mappings.
-    switch (command) {
-      case "h": keySets = [normalKeySet(Qt.Key_Left)];   break;
-      case "j": keySets = [normalKeySet(Qt.Key_Down)];   break;
-      case "k": keySets = [normalKeySet(Qt.Key_Up)];   break;
-      case "l": keySets = [normalKeySet(Qt.Key_Right)];   break;
-
-      case "b": keySets = [normalKeySet(Qt.Key_Left, Qt.ControlModifier)];   break;
-      case "w": keySets = [normalKeySet(Qt.Key_Right, Qt.ControlModifier)];   break;
-
-      case "0": keySets = [normalKeySet(Qt.Key_Home)];   break;
-      case "$": keySets = [normalKeySet(Qt.Key_End)];   break;
-
-      default: navHandled = false; break;
-    }
-
-    if (navHandled) {
-      var handlerResult = handlerResultCommandComplete();
-      handlerResult.keySets = keySets;
-      return handlerResult;
-    } else {
-      return handlerResultUnrecognized();
-    }
-  }
-
-  // ======== Command handler
-  function handleInsertionKeys(command, key, text) {
-    if (command == 'i') {
-      return handlerResultChangeMode("insert");
-    }
-    if (command == 'a') {
-      return handlerResultChangeMode("insert");
-    }
-    if (command == 'A') {
-      var handlerResult = handlerResultCommandComplete();
-        handlerResult.keySets = [
-          normalKeySet(Qt.Key_End)
-        ];
-      handlerResult.changeMode = "insert";
-      return handlerResult;
-    }
-    if (command == 'o' || command == 'O') {
-      var handlerResult = handlerResultCommandComplete();
-      handlerResult.changeMode = "insert";
-      if (command == 'o') {
-        handlerResult.keySets = [
-          normalKeySet(Qt.Key_End),
-          normalKeySet(Qt.Key_Return),
-          normalKeySet(Qt.Key_Return),
-          normalKeySet(Qt.Key_Up),
-        ];
-      }
-      if (command == 'O') {
-        handlerResult.keySets = [
-          normalKeySet(Qt.Key_Home),
-          normalKeySet(Qt.Key_Return),
-          normalKeySet(Qt.Key_Up),
-        ];
-      }
-      return handlerResult;
-    }
-
-    return handlerResultUnrecognized();
-  }
-
-  // ======== Command handler
-  function handleDeletionKeys(command, key, text) {
-    if (command == 'dd') {
-      var keySets = [
-        normalKeySet(Qt.Key_Home),
-        normalKeySet(Qt.Key_End, Qt.ShiftModifier),
-        normalKeySet(Qt.Key_Delete),
-        normalKeySet(Qt.Key_Backspace)
-      ];
-      return handlerResultSendKeySets(keySets);
-    }
-    if (command == 'd') {
-      return handlerResultCommandIncomplete();
-    }
-    if (command == 'x') {
-      return handlerResultSendKeySets([normalKeySet(Qt.Key_Delete)]);
-    }
-    // If command starts with 'd' but hasn't been handled up to this point,
-    // it must be invalid.
-    if (command.length > 1 && command[0] == 'd') {
-      return handlerResultCommandInvalid();
-    }
-
-    return handlerResultUnrecognized();
-  }
-
-  // ======== Command handler
-  function handleReplacementKeys(command, key, text) {
-    if (command == 'r') {
-      return handlerResultCommandIncomplete();
-    }
-
-    if (command[0] == 'r') {
-      var keySets = [
-        normalKeySet(Qt.Key_Delete),
-        textKeySet(command[1])
-      ];
-      return handlerResultSendKeySets(keySets);
-    }
-    return handlerResultUnrecognized();
-  }
-
-
-  // ======== Command handler
-  function handleDevelKeys(command, key, text) {
-    if (command == '?') {
-      Util.testUtilities();
-      return handlerResultCommandComplete();
-    }
-
-    return handlerResultUnrecognized();
-  }
 }
