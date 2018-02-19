@@ -378,6 +378,14 @@ Item {
     if (command == 'a') {
       return handlerResultChangeMode("insert");
     }
+    if (command == 'A') {
+      var handlerResult = handlerResultCommandComplete();
+        handlerResult.keySets = [
+          normalKeySet(Qt.Key_End)
+        ];
+      handlerResult.changeMode = "insert";
+      return handlerResult;
+    }
     if (command == 'o' || command == 'O') {
       var handlerResult = handlerResultCommandComplete();
       handlerResult.changeMode = "insert";
