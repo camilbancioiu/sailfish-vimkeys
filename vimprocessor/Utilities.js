@@ -7,7 +7,7 @@ function debugPressedKey(message, pressedKey) {
 }
 
 function debugCommandHandler(handler, handlerResult, command) {
-  debug('Handler "' + handler.name + '", c['+command+'] {'+objToString(handlerResult)+'}');
+  debug('Handler "' + handler.name + '", c['+command+'] {'+handlerToString(handlerResult)+'}');
 }
 
 function testUtilities() {
@@ -24,6 +24,25 @@ function KeyName(key) {
     }
   }
   return "";
+}
+
+function handlerToString (obj) {
+  var str = '';
+  for (var p in obj) {
+    if (obj.hasOwnProperty(p)) {
+      if (p == 'keySets') {
+        continue;
+      }
+      str += p + '=' + obj[p] + ', ';
+    }
+  }
+  if (obj.hasOwnProperty('keySets')) {
+    str += "\nKeySets: ";
+    for (var k in obj.keySets) {
+      str += KeyName(obj.keySets[k][0]) + ', ';
+    }
+  }
+  return str;
 }
 
 function objToString (obj) {

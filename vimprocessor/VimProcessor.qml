@@ -158,9 +158,11 @@ Item {
     Util.debug("Current command: " + command);
     var handlers = [
       Handlers.handleIgnoredKeys,
+      Handlers.handleSpecialCommands,
       Handlers.handleReplacementKeys,
       Handlers.handleDeletionKeys,
       Handlers.handleInsertionKeys,
+      Handlers.handleCopyingAndPastingKeys,
       Handlers.handleDevelKeys,
       Handlers.handleSimpleNavigationKeys
     ];
@@ -180,6 +182,11 @@ Item {
       command = '';
     }
 
+    if (handlerResult.commandPassthrough == true) {
+      command = '';
+      return _KEYPRESS_IGNORED;
+    }
+
     if (handlerResult.commandRecognized) {
       if (handlerResult.commandValid) {
         if (handlerResult.commandComplete) {
@@ -195,13 +202,8 @@ Item {
       command = '';
     }
 
-    if (handlerResult.commandOp == "passthrough") {
-      command = '';
-      return _KEYPRESS_IGNORED;
-    } else {
-      // Don't leak keypresses no matter what, because we're in normal mode.
-      return _KEYPRESS_HANDLED;
-    }
+    // Don't leak keypresses no matter what, because we're in normal mode.
+    return _KEYPRESS_HANDLED;
   }
 
   function executeCommand(handlerResult, command) {

@@ -21,7 +21,7 @@ function handlerResultChangeMode(mode) {
     commandRecognized: true,
     commandComplete: true,
     commandValid: true,
-    commandPassthrough: true,
+    commandPassthrough: false,
     changeMode: mode
   };
 } 
