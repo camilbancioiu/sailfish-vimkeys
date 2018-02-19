@@ -148,6 +148,10 @@ Item {
     autorepeatTimer.stop()
     multitap.flush()
     reset()
+    if (typeof preedit !== "undefined") {
+      MInputMethodQuick.sendCommit(preedit);
+      preedit = "";
+    }
   }
 
   function handleVimNormalModeKeys(pressedKey) {
