@@ -168,7 +168,8 @@ Item {
       Handlers.handleInsertionKeys,
       Handlers.handleCopyingAndPastingKeys,
       Handlers.handleDevelKeys,
-      Handlers.handleSimpleNavigationKeys
+      Handlers.handleSimpleNavigationKeys,
+      Handlers.handleMacroNavigationKeys
     ];
 
     var handler;

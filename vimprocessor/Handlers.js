@@ -148,6 +148,36 @@ function selectWord() {
 
   return [].concat.apply([], [moveToBeginning, moveToEndWithShift]);
 }
+
+// ======== Command handler
+function handleMacroNavigationKeys(command, key, text) {
+  if (command == 'g') {
+    return HR.handlerResultCommandIncomplete();
+  }
+  if (command == 'gg') {
+    var handlerResult = HR.handlerResultCommandComplete();
+    handlerResult.keySets = [
+      normalKeySet(Qt.Key_Home, Qt.ControlModifier)
+      ];
+    return handlerResult;
+  }
+  if (command == 'G') {
+    var handlerResult = HR.handlerResultCommandComplete();
+    handlerResult.keySets = [
+      normalKeySet(Qt.Key_End, Qt.ControlModifier)
+      ];
+    return handlerResult;
+  }
+
+  // If command starts with 'g' but hasn't been handled up to this point,
+  // it must be invalid.
+  if (command.length > 1 && command[0] == 'g') {
+    return HR.handlerResultCommandInvalid();
+  }
+
+  return HR.handlerResultUnrecognized();
+}
+
 // ======== Command handler
 function handleInsertionKeys(command, key, text) {
   if (command == 'i') {
