@@ -40,28 +40,44 @@ function handleSimpleNavigationKeys(command, key, text) {
   }
   var navHandled = true;
   var keySets = [];
-  // Basic mappings.
-  switch (command) {
-    case "h": keySets = [normalKeySet(Qt.Key_Left)];   break;
-    case "j": keySets = [normalKeySet(Qt.Key_Down)];   break;
-    case "k": keySets = [normalKeySet(Qt.Key_Up)];   break;
-    case "l": keySets = [normalKeySet(Qt.Key_Right)];   break;
+  if (visual != "line") {
+    switch (command) {
+      case "h": keySets = [normalKeySet(Qt.Key_Left)];   break;
+      case "j": keySets = [normalKeySet(Qt.Key_Down)];   break;
+      case "k": keySets = [normalKeySet(Qt.Key_Up)];   break;
+      case "l": keySets = [normalKeySet(Qt.Key_Right)];   break;
 
-    //case "b": keySets = [normalKeySet(Qt.Key_Left, Qt.ControlModifier)];   break;
-    case "b": keySets = getMovementToBeginningOfWord(null);   break;
-    case "w": keySets = [normalKeySet(Qt.Key_Right, Qt.ControlModifier)];   break;
+      case "b": keySets = getMovementToBeginningOfWord(null);   break;
+      case "w": keySets = [normalKeySet(Qt.Key_Right, Qt.ControlModifier)];   break;
 
-    case "0": keySets = [normalKeySet(Qt.Key_Home)];   break;
-    case "$": keySets = [normalKeySet(Qt.Key_End)];   break;
+      case "0": keySets = [normalKeySet(Qt.Key_Home)];   break;
+      case "$": keySets = [normalKeySet(Qt.Key_End)];   break;
+      case "n": keySets = [normalKeySet(Qt.Key_Home)];   break;
+      case "m": keySets = [normalKeySet(Qt.Key_End)];   break;
 
-    case "e": keySets = getMovementToEndOfWord(null); break;
+      case "e": keySets = getMovementToEndOfWord(null); break;
 
-    default: navHandled = false; break;
+      default: navHandled = false; break;
+    }
+  } else {
+    navHandled = false;
+    if (command == 'j') {
+      keySets = [normalKeySet(Qt.Key_Down, Qt.ShiftModifier)];
+      navHandled = true;
+    }
+    if (command == 'k') {
+      keySets = [normalKeySet(Qt.Key_Up, Qt.ShiftModifier)];
+      navHandled = true;
+    }
   }
 
   if (navHandled) {
     var handlerResult = HR.handlerResultCommandComplete();
-    handlerResult.keySets = keySets;
+    if (visual == "simple") {
+      handlerResult.keySets = addModifier(keySets, Qt.ShiftModifier);
+    } else {
+      handlerResult.keySets = keySets;
+    }
     return handlerResult;
   } else {
     return HR.handlerResultUnrecognized();
@@ -158,14 +174,20 @@ function handleMacroNavigationKeys(command, key, text) {
     var handlerResult = HR.handlerResultCommandComplete();
     handlerResult.keySets = [
       normalKeySet(Qt.Key_Home, Qt.ControlModifier)
-      ];
+    ];
+    if (visual != "off") {
+      handlerResult.keySets = addModifier(handlerResult.keySets, Qt.ShiftModifier);
+    } 
     return handlerResult;
   }
   if (command == 'G') {
     var handlerResult = HR.handlerResultCommandComplete();
     handlerResult.keySets = [
       normalKeySet(Qt.Key_End, Qt.ControlModifier)
-      ];
+    ];
+    if (visual != "off") {
+      handlerResult.keySets = addModifier(handlerResult.keySets, Qt.ShiftModifier);
+    } 
     return handlerResult;
   }
 
@@ -184,7 +206,12 @@ function handleInsertionKeys(command, key, text) {
     return HR.handlerResultChangeMode("insert");
   }
   if (command == 'a') {
-    return HR.handlerResultChangeMode("insert");
+    var handlerResult = HR.handlerResultCommandComplete();
+    handlerResult.keySets = [
+      normalKeySet(Qt.Key_Right)
+      ];
+    handlerResult.changeMode = "insert";
+    return handlerResult;
   }
   if (command == 'I') {
     var handlerResult = HR.handlerResultCommandComplete();
@@ -208,9 +235,7 @@ function handleInsertionKeys(command, key, text) {
     if (command == 'o') {
       handlerResult.keySets = [
         normalKeySet(Qt.Key_End),
-        normalKeySet(Qt.Key_Return),
-        normalKeySet(Qt.Key_Return),
-        normalKeySet(Qt.Key_Up),
+        normalKeySet(Qt.Key_Return)
         ];
     }
     if (command == 'O') {
@@ -229,6 +254,11 @@ function handleInsertionKeys(command, key, text) {
 // ======== Command handler
 function handleDeletionKeys(command, key, text) {
   if (command == 'd') {
+    if (visual != "off") {
+      var handlerResult = HR.handlerResultCommandComplete();
+      handlerResult.keySets = [normalKeySet(Qt.Key_Delete)];
+      return handlerResult;
+    }
     return HR.handlerResultCommandIncomplete();
   }
   if (command == 'di') {
@@ -285,6 +315,12 @@ function handleReplacementKeys(command, key, text) {
     return HR.handlerResultCommandIncomplete();
   }
   if (command == 'c') {
+    if (visual != "off") {
+      var handlerResult = HR.handlerResultCommandComplete();
+      handlerResult.keySets = [normalKeySet(Qt.Key_Delete)];
+      handlerResult.changeMode = "insert";
+      return handlerResult;
+    }
     return HR.handlerResultCommandIncomplete();
   }
   if (command == 'ci') {
@@ -349,14 +385,23 @@ function handleReplacementKeys(command, key, text) {
 // ======== Command handler
 function handleCopyingAndPastingKeys(command, key, text) {
   if (command == 'y') {
+    if (visual != "off") {
+      var handlerResult = HR.handlerResultCommandComplete();
+      handlerResult.keySets = [normalKeySet(Qt.Key_C, Qt.ControlModifier)];
+      return handlerResult;
+    }
     return HR.handlerResultCommandIncomplete();
   }
   if (command == 'p') {
     var handlerResult = HR.handlerResultCommandComplete();
-    handlerResult.keySets = [
-      normalKeySet(Qt.Key_Right),
-      normalKeySet(Qt.Key_V, Qt.ControlModifier)
-    ];
+    if (visual != "off") {
+      handlerResult.keySets = [normalKeySet(Qt.Key_V, Qt.ControlModifier)];
+    } else {
+      handlerResult.keySets = [
+        normalKeySet(Qt.Key_Right),
+        normalKeySet(Qt.Key_V, Qt.ControlModifier)
+      ];
+    }
     return handlerResult;
   }
   if (command == 'P') {
@@ -384,10 +429,50 @@ function handleCopyingAndPastingKeys(command, key, text) {
 }
 
 // ======== Command handler
+function handleVisualMode(command, key, text) {
+  if (command == 'v') {
+    var handlerResult = HR.handlerResultCommandComplete();
+    if (visual == "simple") {
+      handlerResult.changeMode = "visualOff";
+      handlerResult.keySets = [normalKeySet(Qt.Key_Left)];
+    } else {
+      handlerResult.keySets = [normalKeySet(Qt.Key_Right, Qt.ShiftModifier)];
+      handlerResult.changeMode = "visualSimple";
+    }
+    return handlerResult;
+  }
+  if (command == 'V') {
+    var handlerResult = HR.handlerResultCommandComplete();
+    if (visual == "line") {
+      handlerResult.changeMode = "visualOff";
+      handlerResult.keySets = [normalKeySet(Qt.Key_Home)];
+    } else {
+      handlerResult.keySets = [
+        normalKeySet(Qt.Key_Home),
+        normalKeySet(Qt.Key_End, Qt.ShiftModifier),
+      ];
+      handlerResult.changeMode = "visualLine";
+    }
+    return handlerResult;
+  }
+
+  return HR.handlerResultUnrecognized();
+}
+
+// ======== Command handler
 function handleDevelKeys(command, key, text) {
   if (command == '?') {
     Util.testUtilities();
     return HR.handlerResultCommandComplete();
+  }
+
+  if (command == '!') {
+    var handlerResult = HR.handlerResultCommandComplete();
+    handlerResult.keySets = [
+      normalKeySet(Qt.Key_Home),
+      normalKeySet(Qt.Key_End, Qt.ShiftModifier | Qt.ControlModifier),
+    ];
+    return handlerResult;
   }
 
   return HR.handlerResultUnrecognized();
@@ -427,6 +512,21 @@ function repeatKeySet(key, n) {
   var keySets = [];
   for (var i = 0; i < n; i++) {
     keySets.push(key);
+  }
+  return keySets;
+}
+
+function addModifier(keySets, mod) {
+  for (var i = 0; i < keySets.length; i++) {
+    if (mod == null) {
+      keySets[i][1] = null;
+    } else {
+      if (keySets[i][1] == null) {
+        keySets[i][1] = mod;
+      } else {
+        keySets[i][1] = keySets[i][1] | mod;
+      }
+    }
   }
   return keySets;
 }

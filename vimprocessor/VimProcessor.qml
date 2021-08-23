@@ -12,6 +12,7 @@ Item {
   property var indicator : ({});
   property string command : "";
   property bool enabled: true;
+  property string visual: "off";
 
   property bool _KEYPRESS_HANDLED: true;
   property bool _KEYPRESS_IGNORED: false;
@@ -61,6 +62,7 @@ Item {
   function reset() {
     vimMode = "insert";
     command = "";
+    visual = "off";
     keyboard.resetShift();
   }
 
@@ -128,6 +130,7 @@ Item {
     keyboard.autocaps = false;
     keyboard.resetShift();
     vimMode = "normal";
+    visual = "off";
     command = "";
     switching = false;
     antiAutocapsTimer.start();
@@ -138,6 +141,7 @@ Item {
     resetParentInputHandler(); 
     keyboard.resetShift();
     vimMode = "insert";
+    visual = "off";
     command = "";
     switching = false;
     Util.debug("Entered insert mode.");
@@ -163,6 +167,7 @@ Item {
     var handlers = [
       Handlers.handleIgnoredKeys,
       Handlers.handleSpecialCommands,
+      Handlers.handleVisualMode,
       Handlers.handleReplacementKeys,
       Handlers.handleDeletionKeys,
       Handlers.handleInsertionKeys,
@@ -221,6 +226,15 @@ Item {
       }
       if (handlerResult.changeMode == "normal") {
         enterVimNormalMode();
+      }
+      if (handlerResult.changeMode == "visualSimple") {
+        visual = "simple";
+      }
+      if (handlerResult.changeMode == "visualLine") {
+        visual = "line";
+      }
+      if (handlerResult.changeMode == "visualOff") {
+        visual = "off";
       }
     }
   }

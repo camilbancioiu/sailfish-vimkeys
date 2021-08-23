@@ -16,6 +16,9 @@ function testUtilities() {
 }
 
 function KeyName(key) {
+  if (key == null) {
+    return "null";
+  }
   for (var property in Qt) {
     if (Qt.hasOwnProperty(property)) {
       if (Qt[property] == key) {
@@ -37,9 +40,16 @@ function handlerToString (obj) {
     }
   }
   if (obj.hasOwnProperty('keySets')) {
-    str += "\nKeySets: ";
+    str += "\nKeySets: \n";
     for (var k in obj.keySets) {
-      str += KeyName(obj.keySets[k][0]) + ', ';
+      var keySetName = KeyName(obj.keySets[k][0]);
+      var keySetModifier = "none";
+      switch (obj.keySets[k][1]) {
+        case Qt.ShiftModifier: keySetModifier = "Shift"; break;
+        case Qt.ControlModifier: keySetModifier = "Ctrl"; break;
+        case Qt.ShiftModifier | Qt.ControlModifier: keySetModifier = "CtrlShift"; break;
+      }
+      str += "(" + keySetName + ', ' + keySetModifier + ')\n';
     }
   }
   return str;
