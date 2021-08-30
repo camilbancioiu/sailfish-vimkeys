@@ -18,7 +18,7 @@ Item {
   property bool _KEYPRESS_IGNORED: false;
 
   Component.onCompleted: {
-    var statusIndicatorComponent = Qt.createComponent("VimProcessorStatusIndicator.qml");
+    var statusIndicatorComponent = Qt.createComponent("VimKeysStatusIndicator.qml");
     indicator = statusIndicatorComponent.createObject(keyboard);
   }
 

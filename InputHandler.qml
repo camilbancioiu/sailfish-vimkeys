@@ -34,13 +34,21 @@ import QtQuick 2.0
 import com.meego.maliitquick 1.0
 import com.jolla.keyboard 1.0
 import Sailfish.Silica 1.0 as Silica
-import "vimprocessor"
+import "vimkeys"
 
-Item {
+Silica.SilicaItem {
     property Item pressedKey
     property Component topItem
     property Component verticalItem
     property bool active
+
+    signal select(string text, int index)
+    signal remove(string text, int index)
+    signal paste(string text)
+
+    function formatText(text) {
+        return text
+    }
 
     Timer {
         id: autorepeatTimer
@@ -60,8 +68,8 @@ Item {
         id: multitap
     }
 
-    VimProcessor {
-      id: vimProcessor
+    VimKeysHandler {
+      id: vimKeysHandler
     }
 
     function _handleKeyPress(key) {
@@ -93,7 +101,7 @@ Item {
             keyboard.characterKeyCounter++
         }
 
-        if (vimProcessor.handleInput(pressedKey)) {
+        if (vimKeysHandler.handleInput(pressedKey)) {
             return
         }
 
@@ -137,7 +145,7 @@ Item {
         autorepeatTimer.stop()
         multitap.flush()
         reset()
-        vimProcessor.reset()
+        vimKeysHandler.reset()
     }
 
 

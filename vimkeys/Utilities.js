@@ -1,5 +1,5 @@
 function debug(message) {
-  console.warn('[DEBUG] Vimprocessor:   ' + message);
+  console.warn('[DEBUG] VimKeys:   ' + message);
 }
 
 function debugPressedKey(message, pressedKey) {
