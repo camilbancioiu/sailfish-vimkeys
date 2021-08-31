@@ -44,8 +44,8 @@ def unapply():
 def create_backup(files):
     BACKUP_ROOT.mkdir(parents=True, exist_ok=True)
     for file in files:
-        shutil.move(str(SRC_ROOT / file), str(BACKUP_ROOT))
-        print(f'Moved file {SRC_ROOT / file} to {BACKUP_ROOT}')
+        shutil.move(str(DEST_ROOT / file), str(BACKUP_ROOT))
+        print(f'Moved file {DEST_ROOT / file} to {BACKUP_ROOT}')
 
 
 def copy_src_to_dest(files, folders):
