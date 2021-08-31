@@ -53,7 +53,7 @@ def copy_src_to_dest(files, folders):
         shutil.copy(SRC_ROOT / file, DEST_ROOT)
         print(f'Copied file {SRC_ROOT / file} to {DEST_ROOT}')
     for folder in folders:
-        shutil.copytree(SRC_ROOT / folder, DEST_ROOT)
+        shutil.copytree(SRC_ROOT / folder, DEST_ROOT / folder)
         print(f'Copied folder {SRC_ROOT / folder} to {DEST_ROOT / folder}')
 
 
