@@ -22,8 +22,7 @@ FOLDERS_TO_COPY = [
 
 
 def main():
-    command = sys.argv[0]
-    print(command)
+    command = sys.argv[1]
     return
     if command == 'a' or command == 'apply':
         apply()
