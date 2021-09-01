@@ -92,7 +92,6 @@ Item {
 
   function handleVimModeSwitching_DoubleTapSpace(pressedKey) {
     if (pressedKey.key == Qt.Key_Space) {
-      Util.debug("keyboard.shiftKeyPressed: " + keyboard.shiftKeyPressed);
       if (switching) {
         if (vimMode == "normal") {
           enterVimInsertMode();
@@ -113,8 +112,7 @@ Item {
     var _MODE_SWITCHED = true;
     var _MODE_NOT_SWITCHED = false;
     switching = false;
-    if (pressedKey.key == Qt.Key_Space && keyboard.shiftKeyPressed) {
-      Util.debug("keyboard.shiftKeyPressed: " + keyboard.shiftKeyPressed);
+    if (pressedKey.key == Qt.Key_Space && keyboard.shiftState == ShiftState.LatchedShift) {
       if (vimMode == "normal") {
         enterVimInsertMode();
       } else {

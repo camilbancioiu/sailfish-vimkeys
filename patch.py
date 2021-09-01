@@ -50,10 +50,13 @@ def create_backup(files):
 
 def copy_src_to_dest(files, folders):
     for file in files:
+        destfile = DEST_ROOT / file
+        if destfile.exists():
+            destfile.unlink()
         shutil.copy(SRC_ROOT / file, DEST_ROOT)
         print(f'Copied file {SRC_ROOT / file} to {DEST_ROOT}')
     for folder in folders:
-        shutil.copytree(SRC_ROOT / folder, DEST_ROOT / folder)
+        shutil.copytree(SRC_ROOT / folder, DEST_ROOT / folder, dirs_exist_ok=True)
         print(f'Copied folder {SRC_ROOT / folder} to {DEST_ROOT / folder}')
 
 
